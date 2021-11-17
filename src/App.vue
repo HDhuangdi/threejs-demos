@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import Render from "./earth2050";
+import Render from "./examples/atmosphereEarth";
 export default {
   components: {},
   mounted() {

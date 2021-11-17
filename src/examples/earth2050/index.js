@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import countries from "./countries";
-import { loadImg, loadObj, getRandomNum } from "./helpers";
+import countries from "@/assets/js/countries";
+import { loadImg, loadObj, getRandomNum } from "../helpers";
 
 let SCENE_WIDTH = window.innerWidth;
 let SCENE_HEIGHT = window.innerHeight;
@@ -95,7 +95,7 @@ export default class Render {
   }
 
   async loadImgs() {
-    this.earthImg = await loadImg(require("./images/earth.jpg"));
+    this.earthImg = await loadImg(require("@/assets/images/earth.jpg"));
     const canvas = document.createElement("canvas");
     canvas.width = this.earthImg.width;
     canvas.height = this.earthImg.height;
@@ -185,7 +185,7 @@ export default class Render {
     const geo = new THREE.PlaneGeometry(this.countryGeoRadius * 2, height);
     const material = new THREE.MeshBasicMaterial({
       map: new THREE.TextureLoader().load(
-        require(`./images/lightray${isYellow ? "_yellow" : ""}.jpg`)
+        require(`@/assets/images/lightray${isYellow ? "_yellow" : ""}.jpg`)
       ),
       side: THREE.DoubleSide,
       transparent: true,
@@ -226,7 +226,7 @@ export default class Render {
     const geo = new THREE.BufferGeometry();
     geo.setFromPoints(positions);
     const material = new THREE.PointsMaterial({
-      map: new THREE.TextureLoader().load(require("@/images/dot.png")),
+      map: new THREE.TextureLoader().load(require("@/assets/images/dot.png")),
       color: new THREE.Color(0x03d98e),
       transparent: true,
       depthTest: false,
@@ -251,7 +251,9 @@ export default class Render {
       uniforms: {
         cloud: {
           type: "sampler2D",
-          value: new THREE.TextureLoader().load(require("./images/clouds.jpg")),
+          value: new THREE.TextureLoader().load(
+            require("@/assets/images/clouds.jpg")
+          ),
         },
         diffuse: {
           type: "vec3",

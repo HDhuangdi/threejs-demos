@@ -74,9 +74,9 @@ export default class Render {
     const textureLoader = new THREE.TextureLoader();
     const earthGeo = new THREE.SphereGeometry(50, 50, 50);
     const earthMaterial = new MeshPhongMaterial({
-      map: textureLoader.load(require("./images/Earth.png")),
-      normalMap: textureLoader.load(require("./images/EarthNormal.png")),
-      specularMap: textureLoader.load(require("./images/EarthSpec.png")),
+      map: textureLoader.load(require("@/assets/images/Earth.png")),
+      normalMap: textureLoader.load(require("@/assets/images/EarthNormal.png")),
+      specularMap: textureLoader.load(require("@/assets/images/EarthSpec.png")),
     });
     this.earth = new THREE.Mesh(earthGeo, earthMaterial);
     this.scene.add(this.earth);

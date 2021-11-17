@@ -77,15 +77,17 @@ export default class Render {
 
     const earthGeo = new THREE.SphereGeometry(50, 50, 50);
     const earthMaterial = new MeshPhongMaterial({
-      map: textureLoader.load(require("./images/Earth.png")),
-      normalMap: textureLoader.load(require("./images/EarthNormal.png")),
-      specularMap: textureLoader.load(require("./images/EarthSpec.png")),
+      map: textureLoader.load(require("@/assets/images/Earth.png")),
+      normalMap: textureLoader.load(require("@/assets/images/EarthNormal.png")),
+      specularMap: textureLoader.load(require("@/assets/images/EarthSpec.png")),
     });
     const earth = new THREE.Mesh(earthGeo, earthMaterial);
     this.scene.add(earth);
 
     const atmosphereGeo = new THREE.SphereGeometry(50.1, 50, 50);
-    const atmosphereTexture = textureLoader.load(require("./images/大气.png"));
+    const atmosphereTexture = textureLoader.load(
+      require("@/assets/images/大气.png")
+    );
     atmosphereTexture.wrapS = THREE.RepeatWrapping;
     atmosphereTexture.wrapT = THREE.RepeatWrapping;
     this.atmosphereMaterial = new ShaderMaterial({
