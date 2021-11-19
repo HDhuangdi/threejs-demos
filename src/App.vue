@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import Render from "./examples/atmosphereEarth";
+import Render from "./examples/fresnelReflection";
 export default {
   components: {},
   mounted() {
