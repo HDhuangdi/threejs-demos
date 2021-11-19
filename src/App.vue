@@ -1,14 +1,11 @@
 <template>
-  <div id="webgl-container"></div>
+  <router-view></router-view>
 </template>
 
 <script>
-import Render from "./examples/fresnelReflection";
 export default {
   components: {},
-  mounted() {
-    new Render();
-  },
+  mounted() {},
 };
 </script>
 
