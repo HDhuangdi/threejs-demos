@@ -25,14 +25,4 @@ export default [
     component: () =>
       import(/* webpackChunkName: "404" */ "@/examples/fresnelReflection/index.vue"),
   },
-  {
-    path: "/helpers.js",
-    component: () =>
-      import(/* webpackChunkName: "404" */ "@/examples/helpers.js/index.vue"),
-  },
-  {
-    path: "/template.js",
-    component: () =>
-      import(/* webpackChunkName: "404" */ "@/examples/template.js/index.vue"),
-  },
 ]

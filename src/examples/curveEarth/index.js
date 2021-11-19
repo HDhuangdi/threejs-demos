@@ -140,7 +140,6 @@ export default class Render {
       end
     );
     const points = curve.getPoints(50);
-    console.log(points);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
 
     const material = new THREE.LineBasicMaterial({ color: 0x80a6de });

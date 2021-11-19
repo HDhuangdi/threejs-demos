@@ -14,7 +14,7 @@ const examplePath = resolve("./src/examples");
 const exampleSrc = fs.readdirSync(examplePath);
 exampleSrc.forEach((name) => {
   const stat = fs.statSync(examplePath + "/" + name);
-  if (stat.isDirectory) {
+  if (stat.isDirectory()) {
     str += `
   {
     path: "/${name}",
