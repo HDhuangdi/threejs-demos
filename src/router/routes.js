@@ -25,4 +25,9 @@ export default [
     component: () =>
       import(/* webpackChunkName: "404" */ "@/examples/fresnelReflection/index.vue"),
   },
+  {
+    path: "/helicopter",
+    component: () =>
+      import(/* webpackChunkName: "404" */ "@/examples/helicopter/index.vue"),
+  },
 ]

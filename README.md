@@ -6,3 +6,4 @@
 2. curveEarth 飞线地球 https://hdhuangdi.github.io/threejs-demos/#/curveEarth
 3. earth2050 特效地球 https://hdhuangdi.github.io/threejs-demos/#/earth2050
 4. fresnelReflection 菲涅尔反射 https://hdhuangdi.github.io/threejs-demos/#/fresnelReflection
+5. helicopter 直升机 https://hdhuangdi.github.io/threejs-demos/#/helicopter

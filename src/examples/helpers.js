@@ -1,4 +1,5 @@
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
+import * as THREE from "three";
 
 export function loadImg(src) {
   return new Promise((resolve) => {
@@ -30,4 +31,29 @@ export function getRandomColor() {
     hex = "0" + hex;
   }
   return "#" + hex; //返回‘#'开头16进制颜色
+}
+
+export function rotateByPivot(vector3, axis, angle, obj) {
+  const mat = new THREE.Matrix4();
+  const mat2 = new THREE.Matrix4();
+  const mat3 = new THREE.Matrix4();
+
+  mat.makeTranslation(vector3.x, vector3.y, vector3.z);
+  switch (axis) {
+    case "x":
+      mat2.makeRotationX(angle);
+      break;
+    case "y":
+      mat2.makeRotationY(angle);
+      break;
+    case "z":
+      mat2.makeRotationZ(angle);
+      break;
+    default:
+      return obj;
+  }
+  mat3.makeTranslation(-vector3.x, -vector3.y, -vector3.z);
+
+  obj.applyMatrix4(mat.multiply(mat2).multiply(mat3));
+  return obj;
 }

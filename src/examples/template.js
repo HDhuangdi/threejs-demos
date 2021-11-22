@@ -12,6 +12,7 @@ export default class Render {
     this.initRenderer();
     this.initObject();
     this.initDevHelpers();
+
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.clock = new THREE.Clock();
     this.render();
