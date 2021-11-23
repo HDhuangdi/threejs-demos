@@ -30,4 +30,9 @@ export default [
     component: () =>
       import(/* webpackChunkName: "404" */ "@/examples/helicopter/index.vue"),
   },
+  {
+    path: "/map3D",
+    component: () =>
+      import(/* webpackChunkName: "404" */ "@/examples/map3D/index.vue"),
+  },
 ]
