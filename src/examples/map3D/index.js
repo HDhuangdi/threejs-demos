@@ -78,6 +78,7 @@ export default class Render {
         multiPolygon.forEach((polygon) => {
           const depth = 5;
           const shape = new THREE.Shape();
+
           const lineGeo = new THREE.BufferGeometry();
           const lineMaterial = new THREE.LineBasicMaterial({ color: "#fff" });
           const lineVertices = [];

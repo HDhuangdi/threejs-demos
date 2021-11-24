@@ -8,3 +8,4 @@
 4. fresnelReflection 菲涅尔反射 https://hdhuangdi.github.io/threejs-demos/#/fresnelReflection
 5. helicopter 直升机 https://hdhuangdi.github.io/threejs-demos/#/helicopter
 6. map3D 3d 版的中国地图 https://hdhuangdi.github.io/threejs-demos/#/map3D
+7. hoverEmergeMap 鼠标悬浮区域自动复现 geo 地图(开发中) https://hdhuangdi.github.io/threejs-demos/#/hoverEmergeMap
