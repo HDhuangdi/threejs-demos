@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import config from "@/config";
 import countries from "@/assets/js/countries";
 import { loadImg, loadObj, getRandomNum } from "../helpers";
 
@@ -323,7 +324,7 @@ export default class Render {
 
   // 卫星
   async drawSatellite() {
-    const obj = await loadObj("./satellite.obj");
+    const obj = await loadObj(config.baseUrl + "./satellite.obj");
     const geos = obj.children.map((mesh) => mesh.geometry);
     this.satellite = new THREE.Group();
     geos.forEach((geo) => {

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import TWEEN from "@tweenjs/tween.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import config from "@/config";
 import { loadObj, rotateByPivot } from "../helpers";
 
 let SCENE_WIDTH = window.innerWidth;
@@ -90,7 +91,7 @@ export default class Render {
 
   async initObject() {
     this.helicopter = new THREE.Group();
-    let obj = await loadObj("/helicopter.obj");
+    let obj = await loadObj(config.baseUrl + "/helicopter.obj");
     obj.children.splice(3, 1);
     const geos = obj.children.map((mesh) => mesh.geometry);
     geos.forEach((geo) => {
