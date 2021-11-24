@@ -2,6 +2,8 @@
 
 自己写的一些 threejs 案例
 
+**3d 资源加载缓慢,请耐心等待~**
+
 1. atmosphereEarth 高光地球 https://hdhuangdi.github.io/threejs-demos/#/atmosphereEarth
 2. curveEarth 飞线地球 https://hdhuangdi.github.io/threejs-demos/#/curveEarth
 3. earth2050 特效地球 https://hdhuangdi.github.io/threejs-demos/#/earth2050
