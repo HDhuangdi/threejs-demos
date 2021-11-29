@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import TWEEN from "@tweenjs/tween.js";
 import * as d3 from "d3";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { loadImg } from "../helpers";
@@ -9,6 +10,17 @@ let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
 
 export default class Render {
   constructor() {
+    this.fps = 60;
+
+    this.clock = new THREE.Clock();
+    this.RADIUS = 100;
+    this.center = new THREE.Vector3(0, 0, 0);
+    this.raycaster = new THREE.Raycaster();
+    this.animationInfo = { opacity: 0 };
+    this.mapAnimateDuration = 0.5;
+    this.mapCenter = [104.0, 37.5];
+    this.textureLoader = new THREE.TextureLoader();
+
     this.initScene();
     this.initCamera();
     this.initLight();
@@ -18,10 +30,7 @@ export default class Render {
     this.initEvent();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.clock = new THREE.Clock();
-    this.RADIUS = 100;
-    this.center = new THREE.Vector3(0, 0, 0);
-    this.raycaster = new THREE.Raycaster();
+
     this.render();
   }
 
@@ -49,7 +58,7 @@ export default class Render {
       0.1,
       10000
     );
-    this.camera.position.set(0, 0, 200);
+    this.camera.position.set(-130, 130, -130);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
     this.scene.add(this.camera);
   }
@@ -57,11 +66,13 @@ export default class Render {
   initLight() {
     this.light = new THREE.PointLight(0xffffff, 0.8); // white light
     this.light.position.set(100, 700, 100);
+
     this.scene.add(this.light);
   }
 
   render() {
     this.renderer.render(this.scene, this.camera);
+    TWEEN.update();
     requestAnimationFrame(this.render.bind(this));
   }
 
@@ -76,54 +87,70 @@ export default class Render {
   }
 
   async initEarth() {
-    const img = await loadImg(require("../../assets/images/earth.jpg"));
-    const canvas = document.createElement("canvas");
-    canvas.width = SCENE_WIDTH;
-    canvas.height = SCENE_HEIGHT;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    const xSteps = 250;
-    const ySteps = 250;
-
-    const pointsVertices = [];
-    const spherical = new THREE.Spherical(this.RADIUS);
-    const position = new THREE.Vector3();
-    for (let i = 0; i < xSteps; i++) {
-      for (let j = 0; j < ySteps; j++) {
-        const xRatio = i / xSteps;
-        const yRatio = j / ySteps;
-        if (this.isLandByUv(xRatio, yRatio, imgData)) {
-          const phi = yRatio * Math.PI;
-          const theta = xRatio * Math.PI * 2;
-          spherical.phi = phi;
-          spherical.theta = theta;
-          position.setFromSpherical(spherical);
-          pointsVertices.push(position.clone().add(this.center));
-        }
-      }
-    }
-
-    const pointsGeo = new THREE.BufferGeometry();
-    pointsGeo.setFromPoints(pointsVertices);
-    const pointsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
-    const points = new THREE.Points(pointsGeo, pointsMaterial);
-    points.rotateY(-Math.PI / 2);
-    this.scene.add(points);
+    const earthGeo = new THREE.SphereGeometry(this.RADIUS, 50, 50);
+    const earthMat = new THREE.ShaderMaterial({
+      uniforms: {
+        dayTexture: {
+          type: "sampler2D",
+          value: this.textureLoader.load(
+            require("@/assets/images/earth-day.png")
+          ),
+        },
+        nightTexture: {
+          type: "sampler2D",
+          value: this.textureLoader.load(
+            require("@/assets/images/earth-night.jpg")
+          ),
+        },
+        lightPos: {
+          type: "vec3",
+          value: this.light.position,
+        },
+      },
+      vertexShader: `
+          varying vec2 vUv;
+          varying vec3 vNormal;
+          void main() {
+            vUv = uv;
+            vNormal = normal;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          }
+        `,
+      fragmentShader: `
+          varying vec2 vUv;
+          uniform sampler2D dayTexture;
+          uniform sampler2D nightTexture;
+          uniform vec3 lightPos;
+          varying vec3 vNormal;
+          void main() {
+            vec3 dayColor = vec3(texture2D(dayTexture, vUv).rgb);
+            vec3 nightColor = vec3(texture2D(nightTexture, vUv).rgb);
+            vec3 color = dayColor;
+            float lightIntensity = dot(normalize(lightPos), vNormal);
+            color = dayColor * lightIntensity;
+            if(lightIntensity <= 0.22) {
+              color = nightColor ;
+            }
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `,
+    });
+    const earth = new THREE.Mesh(earthGeo, earthMat);
+    this.scene.add(earth);
   }
 
   initMap() {
-    const mapCenter = [104.0, 37.5];
     const depth = 5;
     const projection = d3
       .geoMercator()
-      .center(mapCenter)
+      .center(this.mapCenter)
       .scale(80)
       .translate([0, 0]);
 
     this.map = new THREE.Group();
+    this.map.name = "map";
     geo.features.forEach((feature) => {
-      feature.geometry.coordinates.forEach((multiPolygon, index) => {
+      feature.geometry.coordinates.forEach((multiPolygon) => {
         const shape = new THREE.Shape();
         const lineVertices = [];
         multiPolygon.forEach((polygon) => {
@@ -138,6 +165,7 @@ export default class Render {
         lineGeo.setFromPoints(lineVertices);
         const lineMat = new THREE.LineBasicMaterial({
           color: "#fff",
+          opacity: 0,
           transparent: true,
         });
         const line = new THREE.Line(lineGeo, lineMat);
@@ -145,7 +173,7 @@ export default class Render {
 
         const mapChunkMat = new THREE.MeshPhongMaterial({
           transparent: true,
-          opacity: 1,
+          opacity: 0,
           color: "#fff",
         });
 
@@ -157,7 +185,7 @@ export default class Render {
         this.map.add(mapChunk);
       });
     });
-    this.map.position.copy(this.lnglat2Vector(mapCenter[0], mapCenter[1]));
+    this.map.position.copy(this.lnglat2Vector(...this.mapCenter));
 
     this.map.lookAt(this.center);
     this.map.rotateY(-Math.PI);
@@ -172,10 +200,10 @@ export default class Render {
 
   initEvent() {
     const container = document.getElementById("webgl-container");
-    container.addEventListener("click", this.clickHandler.bind(this));
+    container.addEventListener("mousemove", this.eventHandler.bind(this));
   }
 
-  clickHandler(e) {
+  eventHandler(e) {
     const { clientX, clientY } = e;
     let x = (clientX / SCENE_WIDTH) * 2 - 1;
     let y = -(clientY / SCENE_HEIGHT) * 2 + 1;
@@ -193,8 +221,101 @@ export default class Render {
         lat > chinaLngLatRange[1][0] &&
         lat < chinaLngLatRange[1][1]
       ) {
-        console.log("中国");
+        this.showMap();
+      } else {
+        this.hideMap();
       }
+    } else {
+      this.hideMap();
+    }
+  }
+
+  showMap() {
+    if (!this.map) return;
+    this.mapOpacityAnimation("show");
+    this.mapPositionAnimation("show");
+  }
+
+  hideMap() {
+    if (
+      !this.map ||
+      this.map.children.every((mesh) => mesh.material.opacity === 0)
+    )
+      return;
+    this.mapOpacityAnimation("hide");
+    this.mapPositionAnimation("hide");
+  }
+
+  // 透明度动画
+  mapOpacityAnimation(type) {
+    if (!this.map) return;
+    if (type === "show" && this.mapHideOpacityAnimation)
+      this.mapHideOpacityAnimation.stop();
+    if (type === "hide" && this.mapShowOpacityAnimation)
+      this.mapShowOpacityAnimation.stop();
+
+    const tween = new TWEEN.Tween(this.animationInfo)
+      .to(
+        {
+          opacity: type === "show" ? 1 : 0,
+        },
+        this.mapAnimateDuration * 1000
+      )
+      .easing(TWEEN.Easing.Quadratic[type === "show" ? "In" : "Out"])
+      .onUpdate(() => {
+        this.map.children.forEach((mesh) => {
+          mesh.material.opacity = this.animationInfo.opacity;
+        });
+      })
+      .start();
+
+    if (type === "show") {
+      this.mapShowOpacityAnimation = tween;
+    } else if (type === "hide") {
+      this.mapHideOpacityAnimation = tween;
+    }
+  }
+
+  // 位置动画
+  mapPositionAnimation(type) {
+    if (!this.map) return;
+    if (type === "show" && this.mapHidePositionAnimation)
+      this.mapHidePositionAnimation.stop();
+    if (type === "hide" && this.mapShowPositionAnimation)
+      this.mapShowPositionAnimation.stop();
+    const endPos = this.lnglat2Vector(...this.mapCenter);
+    const startPos = new THREE.Vector3();
+    const ray = new THREE.Ray(this.center, endPos.clone().normalize());
+    ray.at(this.RADIUS * 0.9, startPos);
+    if (!this.transLateInfo) {
+      this.transLateInfo = {
+        x: type === "show" ? startPos.x : endPos.x,
+        y: type === "show" ? startPos.y : endPos.y,
+        z: type === "show" ? startPos.z : endPos.z,
+      };
+    }
+    const tween = new TWEEN.Tween(this.transLateInfo)
+      .to(
+        {
+          x: type === "show" ? endPos.x : startPos.x,
+          y: type === "show" ? endPos.y : startPos.y,
+          z: type === "show" ? endPos.z : startPos.z,
+        },
+        this.mapAnimateDuration * 1000
+      )
+      .easing(TWEEN.Easing.Quadratic[type === "show" ? "In" : "Out"])
+      .onUpdate(() => {
+        this.map.position.set(
+          this.transLateInfo.x,
+          this.transLateInfo.y,
+          this.transLateInfo.z
+        );
+      })
+      .start();
+    if (type === "show") {
+      this.mapShowPositionAnimation = tween;
+    } else if (type === "hide") {
+      this.mapHidePositionAnimation = tween;
     }
   }
 

@@ -96,7 +96,7 @@ export default class Render {
   }
 
   async loadImgs() {
-    this.earthImg = await loadImg(require("@/assets/images/earth.jpg"));
+    this.earthImg = await loadImg(require("@/assets/images/earth-spec.png"));
     const canvas = document.createElement("canvas");
     canvas.width = this.earthImg.width;
     canvas.height = this.earthImg.height;
