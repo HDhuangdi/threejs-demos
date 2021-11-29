@@ -126,11 +126,8 @@ export default class Render {
             vec3 dayColor = vec3(texture2D(dayTexture, vUv).rgb);
             vec3 nightColor = vec3(texture2D(nightTexture, vUv).rgb);
             vec3 color = dayColor;
-            float lightIntensity = dot(normalize(lightPos), vNormal);
-            color = dayColor * lightIntensity;
-            if(lightIntensity <= 0.22) {
-              color = nightColor ;
-            }
+            float angle = dot(normalize(lightPos), vNormal);
+            color = angle < 0.22 ? nightColor : dayColor * angle;
             gl_FragColor = vec4(color, 1.0);
           }
         `,
