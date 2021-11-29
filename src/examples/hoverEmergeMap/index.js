@@ -2,7 +2,10 @@ import * as THREE from "three";
 import TWEEN from "@tweenjs/tween.js";
 import * as d3 from "d3";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { loadImg } from "../helpers";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 const geo = require("./geo.json");
 
 let SCENE_WIDTH = window.innerWidth;
@@ -26,8 +29,9 @@ export default class Render {
     this.initLight();
     this.initRenderer();
     this.initObject();
-    this.initDevHelpers();
+    // this.initDevHelpers();
     this.initEvent();
+    this.initEffect();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
@@ -58,20 +62,20 @@ export default class Render {
       0.1,
       10000
     );
-    this.camera.position.set(-130, 130, -130);
+    this.camera.position.set(290, 0, -150);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
     this.scene.add(this.camera);
   }
 
   initLight() {
     this.light = new THREE.PointLight(0xffffff, 0.8); // white light
-    this.light.position.set(100, 700, 100);
+    this.light.position.set(100, 100, 100);
 
     this.scene.add(this.light);
   }
 
   render() {
-    this.renderer.render(this.scene, this.camera);
+    this.composer.render();
     TWEEN.update();
     requestAnimationFrame(this.render.bind(this));
   }
@@ -87,8 +91,9 @@ export default class Render {
   }
 
   async initEarth() {
-    const earthGeo = new THREE.SphereGeometry(this.RADIUS, 50, 50);
-    const earthMat = new THREE.ShaderMaterial({
+    const dayEarthGeo = new THREE.SphereGeometry(this.RADIUS, 50, 50);
+    const dayEarthMat = new THREE.ShaderMaterial({
+      blending: THREE.AdditiveBlending,
       uniforms: {
         dayTexture: {
           type: "sampler2D",
@@ -127,13 +132,60 @@ export default class Render {
             vec3 nightColor = vec3(texture2D(nightTexture, vUv).rgb);
             vec3 color = dayColor;
             float angle = dot(normalize(lightPos), vNormal);
-            color = angle < 0.22 ? nightColor : dayColor * angle;
-            gl_FragColor = vec4(color, 1.0);
+            gl_FragColor = vec4(dayColor, angle);
           }
         `,
     });
-    const earth = new THREE.Mesh(earthGeo, earthMat);
-    this.scene.add(earth);
+    const dayEarth = new THREE.Mesh(dayEarthGeo, dayEarthMat);
+    this.scene.add(dayEarth);
+
+    const nightEarthGeo = new THREE.SphereGeometry(this.RADIUS, 50, 50);
+    const nightEarthMat = new THREE.ShaderMaterial({
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        dayTexture: {
+          type: "sampler2D",
+          value: this.textureLoader.load(
+            require("@/assets/images/earth-day.png")
+          ),
+        },
+        nightTexture: {
+          type: "sampler2D",
+          value: this.textureLoader.load(
+            require("@/assets/images/earth-night.jpg")
+          ),
+        },
+        lightPos: {
+          type: "vec3",
+          value: this.light.position,
+        },
+      },
+      vertexShader: `
+          varying vec2 vUv;
+          varying vec3 vNormal;
+          void main() {
+            vUv = uv;
+            vNormal = normal;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          }
+        `,
+      fragmentShader: `
+          varying vec2 vUv;
+          uniform sampler2D dayTexture;
+          uniform sampler2D nightTexture;
+          uniform vec3 lightPos;
+          varying vec3 vNormal;
+          void main() {
+            vec3 dayColor = vec3(texture2D(dayTexture, vUv).rgb);
+            vec3 nightColor = vec3(texture2D(nightTexture, vUv).rgb);
+            vec3 color = dayColor;
+            float angle = dot(normalize(lightPos), vNormal);
+            gl_FragColor = vec4(nightColor, 1.0 - angle);
+          }
+        `,
+    });
+    const nightEarth = new THREE.Mesh(nightEarthGeo, nightEarthMat);
+    this.scene.add(nightEarth);
   }
 
   initMap() {
@@ -314,6 +366,43 @@ export default class Render {
     } else if (type === "hide") {
       this.mapHidePositionAnimation = tween;
     }
+  }
+  initEffect() {
+    this.composer = new EffectComposer(this.renderer);
+    const renderPass = new RenderPass(this.scene, this.camera);
+    const unrealBloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.4,
+      1,
+      0.5
+    );
+    const shaderPass = new ShaderPass(
+      {
+        uniforms: {
+          bloomTexture: { value: this.composer.renderTarget2.texture },
+          baseTexture: { value: null },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D baseTexture;
+          uniform sampler2D bloomTexture;
+          varying vec2 vUv;
+          void main() {
+            gl_FragColor = (texture2D(baseTexture, vUv) + vec4(1.0) * texture2D(bloomTexture, vUv));
+          }
+        `,
+      },
+      "baseTexture"
+    );
+
+    this.composer.addPass(renderPass);
+    this.composer.addPass(unrealBloomPass), this.composer.addPass(shaderPass);
   }
 
   // 经纬度 => 三维向量
