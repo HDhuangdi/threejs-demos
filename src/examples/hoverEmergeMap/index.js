@@ -23,13 +23,16 @@ export default class Render {
     this.mapAnimateDuration = 0.5;
     this.mapCenter = [104.0, 37.5];
     this.textureLoader = new THREE.TextureLoader();
+    this.frameRotateAngle = -Math.PI / 1000;
+    this.allRotateAngle = 0; // range: -2pi ~ 2pi
+    this.rotatePause = false;
 
     this.initScene();
     this.initCamera();
     this.initLight();
     this.initRenderer();
     this.initObject();
-    // this.initDevHelpers();
+    this.initDevHelpers();
     this.initEvent();
     this.initEffect();
 
@@ -62,20 +65,29 @@ export default class Render {
       0.1,
       10000
     );
-    this.camera.position.set(290, 0, -150);
+    this.camera.position.set(200, 200, 200);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
     this.scene.add(this.camera);
   }
 
   initLight() {
     this.light = new THREE.PointLight(0xffffff, 0.8); // white light
-    this.light.position.set(100, 100, 100);
+    this.light.position.set(900, 0, 0);
 
     this.scene.add(this.light);
   }
 
   render() {
     this.composer.render();
+    if (this.earth && !this.rotatePause) {
+      this.allRotateAngle += this.frameRotateAngle;
+      if (this.allRotateAngle >= Math.PI * 2) {
+        this.allRotateAngle -= Math.PI * 2;
+      } else if (this.allRotateAngle <= -Math.PI * 2) {
+        this.allRotateAngle += Math.PI * 2;
+      }
+      this.earth.rotateY(this.frameRotateAngle);
+    }
     TWEEN.update();
     requestAnimationFrame(this.render.bind(this));
   }
@@ -91,6 +103,7 @@ export default class Render {
   }
 
   async initEarth() {
+    this.earth = new THREE.Group();
     const dayEarthGeo = new THREE.SphereGeometry(this.RADIUS, 50, 50);
     const dayEarthMat = new THREE.ShaderMaterial({
       blending: THREE.AdditiveBlending,
@@ -101,12 +114,6 @@ export default class Render {
             require("@/assets/images/earth-day.png")
           ),
         },
-        nightTexture: {
-          type: "sampler2D",
-          value: this.textureLoader.load(
-            require("@/assets/images/earth-night.jpg")
-          ),
-        },
         lightPos: {
           type: "vec3",
           value: this.light.position,
@@ -115,40 +122,32 @@ export default class Render {
       vertexShader: `
           varying vec2 vUv;
           varying vec3 vNormal;
+          uniform vec3 lightPos;
           void main() {
             vUv = uv;
-            vNormal = normal;
+            vNormal =  vec3(modelMatrix * vec4(normal, 1.0));
             gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
           }
         `,
       fragmentShader: `
           varying vec2 vUv;
           uniform sampler2D dayTexture;
-          uniform sampler2D nightTexture;
-          uniform vec3 lightPos;
           varying vec3 vNormal;
+          uniform vec3 lightPos;
           void main() {
             vec3 dayColor = vec3(texture2D(dayTexture, vUv).rgb);
-            vec3 nightColor = vec3(texture2D(nightTexture, vUv).rgb);
-            vec3 color = dayColor;
             float angle = dot(normalize(lightPos), vNormal);
             gl_FragColor = vec4(dayColor, angle);
           }
         `,
     });
     const dayEarth = new THREE.Mesh(dayEarthGeo, dayEarthMat);
-    this.scene.add(dayEarth);
+    this.earth.add(dayEarth);
 
     const nightEarthGeo = new THREE.SphereGeometry(this.RADIUS, 50, 50);
     const nightEarthMat = new THREE.ShaderMaterial({
       blending: THREE.AdditiveBlending,
       uniforms: {
-        dayTexture: {
-          type: "sampler2D",
-          value: this.textureLoader.load(
-            require("@/assets/images/earth-day.png")
-          ),
-        },
         nightTexture: {
           type: "sampler2D",
           value: this.textureLoader.load(
@@ -163,29 +162,29 @@ export default class Render {
       vertexShader: `
           varying vec2 vUv;
           varying vec3 vNormal;
+          uniform vec3 lightPos;
           void main() {
             vUv = uv;
-            vNormal = normal;
+            vNormal =  vec3(modelMatrix * vec4(normal, 1.0));
             gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
           }
         `,
       fragmentShader: `
           varying vec2 vUv;
-          uniform sampler2D dayTexture;
           uniform sampler2D nightTexture;
-          uniform vec3 lightPos;
           varying vec3 vNormal;
+          uniform vec3 lightPos;
           void main() {
-            vec3 dayColor = vec3(texture2D(dayTexture, vUv).rgb);
             vec3 nightColor = vec3(texture2D(nightTexture, vUv).rgb);
-            vec3 color = dayColor;
             float angle = dot(normalize(lightPos), vNormal);
             gl_FragColor = vec4(nightColor, 1.0 - angle);
           }
         `,
     });
     const nightEarth = new THREE.Mesh(nightEarthGeo, nightEarthMat);
-    this.scene.add(nightEarth);
+    this.earth.add(nightEarth);
+    this.earth.rotateY(-Math.PI / 2);
+    this.scene.add(this.earth);
   }
 
   initMap() {
@@ -216,6 +215,7 @@ export default class Render {
           color: "#fff",
           opacity: 0,
           transparent: true,
+          linewidth: 10,
         });
         const line = new THREE.Line(lineGeo, lineMat);
         this.map.add(line);
@@ -223,7 +223,7 @@ export default class Render {
         const mapChunkMat = new THREE.MeshPhongMaterial({
           transparent: true,
           opacity: 0,
-          color: "#fff",
+          color: "#409EFF",
         });
 
         const mapChunkGeo = new THREE.ExtrudeGeometry(shape, {
@@ -238,7 +238,7 @@ export default class Render {
 
     this.map.lookAt(this.center);
     this.map.rotateY(-Math.PI);
-    this.scene.add(this.map);
+    this.earth.add(this.map);
   }
 
   isLandByUv(xRatio, yRatio, imgData) {
@@ -259,7 +259,13 @@ export default class Render {
     this.raycaster.setFromCamera({ x, y }, this.camera);
     var intersects = this.raycaster.intersectObjects(this.scene.children, true);
     if (intersects.length) {
-      const [lng, lat] = this.Vector2Lnglat(intersects[0].point);
+      const point = intersects[0].point.clone();
+      const mat = new THREE.Matrix4();
+      // 应该往反方向偏移
+      // 例如,allRotateAngle为负数,表示地球顺时针旋转了一定角度,所以点位原先的位置应该往逆时针旋转一定角度
+      mat.makeRotationY(-this.allRotateAngle);
+      point.applyMatrix4(mat);
+      const [lng, lat] = this.Vector2Lnglat(point);
       const chinaLngLatRange = [
         [73.33, 135.05],
         [3.51, 53.33],
@@ -270,11 +276,14 @@ export default class Render {
         lat > chinaLngLatRange[1][0] &&
         lat < chinaLngLatRange[1][1]
       ) {
+        this.rotatePause = true;
         this.showMap();
       } else {
+        this.rotatePause = false;
         this.hideMap();
       }
     } else {
+      this.rotatePause = false;
       this.hideMap();
     }
   }
@@ -332,10 +341,12 @@ export default class Render {
       this.mapHidePositionAnimation.stop();
     if (type === "hide" && this.mapShowPositionAnimation)
       this.mapShowPositionAnimation.stop();
-    const endPos = this.lnglat2Vector(...this.mapCenter);
+    const mapCenterPos = this.lnglat2Vector(...this.mapCenter);
+    const endPos = new THREE.Vector3();
     const startPos = new THREE.Vector3();
-    const ray = new THREE.Ray(this.center, endPos.clone().normalize());
-    ray.at(this.RADIUS * 0.9, startPos);
+    const ray = new THREE.Ray(this.center, mapCenterPos.clone().normalize());
+    ray.at(this.RADIUS * 1, startPos);
+    ray.at(this.RADIUS * 1.1, endPos);
     if (!this.transLateInfo) {
       this.transLateInfo = {
         x: type === "show" ? startPos.x : endPos.x,
@@ -367,6 +378,7 @@ export default class Render {
       this.mapHidePositionAnimation = tween;
     }
   }
+
   initEffect() {
     this.composer = new EffectComposer(this.renderer);
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -420,10 +432,10 @@ export default class Render {
   Vector2Lnglat(vector) {
     const spherical = new THREE.Spherical();
     spherical.setFromVector3(vector);
-    const theta =
-      spherical.theta < 0 ? Math.PI * 2 + spherical.theta : spherical.theta;
-    let lng = theta / (Math.PI / 180) - 90;
-    lng = lng > 180 ? lng - 360 : lng;
+
+    // 0 ~ pi: 0E ~ 180E
+    // 0 ~ -pi: 0W ~ 180W
+    let lng = spherical.theta / (Math.PI / 180);
     const lat = 90 - spherical.phi / (Math.PI / 180);
     return [lng, lat];
   }
