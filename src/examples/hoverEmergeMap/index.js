@@ -32,7 +32,7 @@ export default class Render {
     this.initLight();
     this.initRenderer();
     this.initObject();
-    this.initDevHelpers();
+    // this.initDevHelpers();
     this.initEvent();
     this.initEffect();
 
