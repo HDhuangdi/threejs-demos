@@ -6,7 +6,7 @@ export default [
   {
     path: "/",
     component: () =>
-      import(/* webpackChunkName: "404" */ "@/examples/earth2050/index.vue"),
+      import(/* webpackChunkName: "main" */ "@/examples/earth2050/index.vue"),
   },`;
 
 const examplePath = resolve("./src/examples");
@@ -19,7 +19,7 @@ exampleSrc.forEach((name) => {
   {
     path: "/${name}",
     component: () =>
-      import(/* webpackChunkName: "404" */ "@/examples/${name}/index.vue"),
+      import(/* webpackChunkName: "main" */ "@/examples/${name}/index.vue"),
   },`;
   }
 });
