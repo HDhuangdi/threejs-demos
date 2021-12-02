@@ -1,3 +1,4 @@
+
 export default [
   {
     path: "/",
@@ -7,9 +8,7 @@ export default [
   {
     path: "/atmosphereEarth",
     component: () =>
-      import(
-        /* webpackChunkName: "main" */ "@/examples/atmosphereEarth/index.vue"
-      ),
+      import(/* webpackChunkName: "main" */ "@/examples/atmosphereEarth/index.vue"),
   },
   {
     path: "/curveEarth",
@@ -24,9 +23,7 @@ export default [
   {
     path: "/fresnelReflection",
     component: () =>
-      import(
-        /* webpackChunkName: "main" */ "@/examples/fresnelReflection/index.vue"
-      ),
+      import(/* webpackChunkName: "main" */ "@/examples/fresnelReflection/index.vue"),
   },
   {
     path: "/helicopter",
@@ -36,13 +33,16 @@ export default [
   {
     path: "/hoverEmergeMap",
     component: () =>
-      import(
-        /* webpackChunkName: "main" */ "@/examples/hoverEmergeMap/index.vue"
-      ),
+      import(/* webpackChunkName: "main" */ "@/examples/hoverEmergeMap/index.vue"),
   },
   {
     path: "/map3D",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/map3D/index.vue"),
   },
-];
+  {
+    path: "/vertexAnimation",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/vertexAnimation/index.vue"),
+  },
+]
