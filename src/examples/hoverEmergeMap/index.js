@@ -19,7 +19,6 @@ export default class Render {
     this.RADIUS = 100;
     this.center = new THREE.Vector3(0, 0, 0);
     this.raycaster = new THREE.Raycaster();
-    this.animationInfo = { opacity: 0 };
     this.mapAnimateDuration = 0.5;
     this.mapCenter = [104.0, 37.5];
     this.textureLoader = new THREE.TextureLoader();
@@ -32,7 +31,7 @@ export default class Render {
     this.initLight();
     this.initRenderer();
     this.initObject();
-    // this.initDevHelpers();
+    this.initDevHelpers();
     this.initEvent();
     this.initEffect();
 
@@ -220,7 +219,7 @@ export default class Render {
         const line = new THREE.Line(lineGeo, lineMat);
         this.map.add(line);
 
-        const mapChunkMat = new THREE.MeshPhongMaterial({
+        const mapChunkMat = new THREE.MeshBasicMaterial({
           transparent: true,
           opacity: 0,
           color: "#409EFF",
@@ -311,18 +310,20 @@ export default class Render {
       this.mapHideOpacityAnimation.stop();
     if (type === "hide" && this.mapShowOpacityAnimation)
       this.mapShowOpacityAnimation.stop();
-
-    const tween = new TWEEN.Tween(this.animationInfo)
+    if (!this.opacityInfo) {
+      this.opacityInfo = { opacity: 0 };
+    }
+    const tween = new TWEEN.Tween(this.opacityInfo)
       .to(
         {
-          opacity: type === "show" ? 1 : 0,
+          opacity: type === "show" ? 0.7 : 0,
         },
         this.mapAnimateDuration * 1000
       )
       .easing(TWEEN.Easing.Quadratic[type === "show" ? "In" : "Out"])
       .onUpdate(() => {
         this.map.children.forEach((mesh) => {
-          mesh.material.opacity = this.animationInfo.opacity;
+          mesh.material.opacity = this.opacityInfo.opacity;
         });
       })
       .start();

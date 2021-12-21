@@ -7,6 +7,13 @@ let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
 
 export default class Render {
   constructor() {
+    this.center = new THREE.Vector3(0, 0, 0);
+    this.radius = 50;
+    this.clock = new THREE.Clock();
+    this.flyLineAnimationDuration = 3000; // ms
+    this.flyLineAnimationNowPercent = 0; // 当前飞线头部运行到总曲线长度的百分比
+    this.flyLineLengthPercent = 0.2; // 飞线占总曲线长度的百分比
+
     this.initScene();
     this.initCamera();
     this.initLight();
@@ -14,9 +21,8 @@ export default class Render {
     this.initObject();
     // this.initDevHelpers();
 
-    this.radius = 50;
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.clock = new THREE.Clock();
+
     this.render();
   }
 
@@ -60,6 +66,15 @@ export default class Render {
 
   render() {
     this.renderer.render(this.scene, this.camera);
+    let delta = this.clock.getDelta();
+    delta *= 1000;
+    this.flyLineAnimationNowPercent += delta / this.flyLineAnimationDuration;
+    if (this.flyLineAnimationNowPercent >= 1) {
+      this.flyLineAnimationNowPercent = 0;
+    }
+    this.curveGroup.children.forEach((mesh) => {
+      mesh.material.uniforms.flyLineAnimationNowPercent.value = this.flyLineAnimationNowPercent;
+    });
     requestAnimationFrame(this.render.bind(this));
   }
 
@@ -88,24 +103,8 @@ export default class Render {
     this.pointGroup = new THREE.Group();
     this.curveGroup = new THREE.Group();
 
-    let firstPoint;
-    for (let index = 0; index < 30; index++) {
-      this.addPoint();
-      if (index === 0) {
-        firstPoint = this.pointGroup.children[0];
-        continue;
-      }
-      this.addCurve(
-        firstPoint.position,
-        this.pointGroup.children[index].position
-      );
-    }
-
-    // for (let index = 1; index < this.pointGroup.children.length; index += 2) {
-    //   const cur = this.pointGroup.children[index];
-    //   const prev = this.pointGroup.children[index - 1];
-    //   this.addCurve(cur.position, prev.position);
-    // }
+    this.addCurve([2.2, 48.5], [116.2, 39.55]);
+    this.addCurve([-0.05, 51.36], [-75.42, 45.27]);
 
     this.group.add(this.pointGroup);
     this.group.add(this.curveGroup);
@@ -124,30 +123,77 @@ export default class Render {
   }
 
   addCurve(start, end) {
-    const angle = start.angleTo(end);
+    const startVec3 = this.lnglat2Vector3(start);
+    const endVec3 = this.lnglat2Vector3(end);
+    const angle = startVec3.angleTo(endVec3);
 
     const hLen = Math.pow(angle < 1 ? 1 : angle, 2) * 80; // 法线的长度
     const cLen = angle * 30; // 控制点线
 
-    const centerVec = getVCenter(start, end); // 两点的中点
+    const centerVec = getVCenter(startVec3, endVec3); // 两点的中点
     const normal = new THREE.Ray(this.earth.position, centerVec); // 法线
     const headPoint = normal.at(
       hLen / centerVec.distanceTo(this.earth.position),
       centerVec
     ); // 法线头部点
-    const controlPoint1 = getLenVec(start, headPoint, cLen);
-    const controlPoint2 = getLenVec(end, headPoint, cLen);
+    const controlPoint1 = getLenVec(startVec3, headPoint, cLen);
+    const controlPoint2 = getLenVec(endVec3, headPoint, cLen);
     const curve = new THREE.CubicBezierCurve3(
-      start,
+      startVec3,
       controlPoint1,
       controlPoint2,
-      end
+      endVec3
     );
-    const points = curve.getPoints(50);
+    const points = curve.getPoints(500);
+    const percents = new Float32Array(points.length);
+    for (let index = 0; index < points.length; index++) {
+      percents[index] = index / points.length;
+    }
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    geometry.setAttribute("percents", new THREE.BufferAttribute(percents, 1));
 
-    const material = new THREE.LineBasicMaterial({ color: 0x80a6de });
-    const curveObject = new THREE.Line(geometry, material);
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        flyLineAnimationNowPercent: {
+          value: this.flyLineAnimationNowPercent,
+        },
+        flyLineLengthPercent: {
+          value: this.flyLineLengthPercent,
+        },
+        color: {
+          value: new THREE.Color("#FB5431"),
+        },
+      },
+      vertexShader: `
+        attribute float percents;
+        uniform float flyLineAnimationNowPercent;
+        uniform float flyLineLengthPercent;
+        varying float alpha;
+        void main() {
+          float head = flyLineAnimationNowPercent;
+          float tail = flyLineAnimationNowPercent - flyLineLengthPercent;
+          if(percents <= head && percents >= tail) {
+            gl_PointSize = 10.0 * (1.0 - (head - percents) / (head - tail));
+            alpha = gl_PointSize;
+          } else {
+            gl_PointSize = 0.0;
+          }
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }
+      `,
+
+      fragmentShader: `
+        varying float alpha;
+        uniform vec3 color;
+        void main() {
+          if(alpha == 0.0) {
+            discard;
+          }
+          gl_FragColor = vec4(color, alpha);
+        }
+      `,
+    });
+    const curveObject = new THREE.Points(geometry, material);
     this.curveGroup.add(curveObject);
 
     return {
@@ -155,15 +201,19 @@ export default class Render {
       mesh: curveObject,
     };
   }
-}
 
-function getPos(center, radius) {
-  const a = Math.PI * 2 * Math.random();
-  const b = Math.PI * 2 * Math.random();
-  const x = radius * Math.sin(a) * Math.cos(b);
-  const y = radius * Math.sin(a) * Math.sin(b);
-  const z = radius * Math.cos(a);
-  return { x: center.x + x, y: center.y + y, z: center.z + z };
+  lnglat2Vector3(lnglat) {
+    const lng = lnglat[0];
+    const lat = lnglat[1];
+
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 90) * (Math.PI / 180);
+    const spherical = new THREE.Spherical(this.radius, phi, theta);
+    const vec = new THREE.Vector3();
+    vec.setFromSpherical(spherical);
+    vec.add(this.center);
+    return vec;
+  }
 }
 
 function getVCenter(v1, v2) {
