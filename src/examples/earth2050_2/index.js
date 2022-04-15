@@ -13,7 +13,7 @@ export default class Render {
     this.RADIUS = 100;
     this.countryColor = [0xffffff, 0xffff00];
     this.countryGeoRadius = 2;
-    this.center = new THREE.Vector3(0, 0, 0);
+    this.center = new THREE.Vector3(100, 0, 0);
     this.earth = new THREE.Group();
     this.satelliteAnimationDuration = 20; // s
     this.satellitePathIndex = 0;
@@ -23,7 +23,7 @@ export default class Render {
     this.initLight();
     this.initRenderer();
     this.initObject().then(() => {
-      this.initDevHelpers();
+      // this.initDevHelpers();
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
       this.controls.enablePan = false;
@@ -46,7 +46,7 @@ export default class Render {
       alpha: true,
     });
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setClearColor(0x000000, 1);
+    this.renderer.setClearColor(0x68B8FF, 1);
     this.renderer.setSize(SCENE_WIDTH, SCENE_HEIGHT);
     document
       .getElementById("webgl-container")
@@ -230,13 +230,13 @@ export default class Render {
     geo.setFromPoints(positions);
     const material = new THREE.PointsMaterial({
       map: new THREE.TextureLoader().load(require("@/assets/images/dot.png")),
-      color: new THREE.Color(0x03d98e),
+      color: new THREE.Color(0xD4EBFF),
       transparent: true,
       depthTest: false,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
-      size: 2,
-      opacity: 0.4,
+      size: 5,
+      opacity: 1,
     });
     const points = new THREE.Points(geo, material);
 
@@ -260,7 +260,7 @@ export default class Render {
         },
         diffuse: {
           type: "vec3",
-          value: new THREE.Color(263385797),
+          value: new THREE.Color(0xD4EBFF),
         },
         opacity: {
           type: "float",
@@ -310,7 +310,7 @@ export default class Render {
     const trackGeo = new THREE.BufferGeometry();
     trackGeo.setFromPoints(linePoints);
     const trackMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color(0x03d98e),
+      color: new THREE.Color(0xD4EBFF),
       transparent: true,
       opacity: 0.6,
       linewidth: 4,
@@ -330,7 +330,7 @@ export default class Render {
     this.satellite = new THREE.Group();
     geos.forEach((geo) => {
       const material = new THREE.LineBasicMaterial({
-        color: new THREE.Color(0x03d98e),
+        color: new THREE.Color(0xD4EBFF),
         transparent: true,
         opacity: 0.1,
         linewidth: 1,
@@ -363,11 +363,11 @@ export default class Render {
     for (let index = 0; index < 300; index++) {
       const geo = new THREE.BoxGeometry(1, 1, 1);
       const material = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0x03d98e),
+        color: new THREE.Color(0xE5E5E5),
         side: THREE.DoubleSide,
         depthTest: false,
         transparent: true,
-        opacity: 0.2,
+        opacity: 1,
       });
       const dust = new THREE.Mesh(geo, material);
 

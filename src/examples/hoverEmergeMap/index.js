@@ -6,6 +6,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
+import {CSS3DObject, CSS3DRenderer} from 'three/examples/jsm/renderers/CSS3DRenderer'
 const geo = require("./geo.json");
 
 let SCENE_WIDTH = window.innerWidth;
@@ -55,6 +56,14 @@ export default class Render {
     document
       .getElementById("webgl-container")
       .appendChild(this.renderer.domElement);
+      this.cssRender = new CSS3DRenderer()
+      this.cssRender.setSize(100 , 100)
+      this.cssRender.domElement.style.position = 'absolute'
+      this.cssRender.domElement.style.top = '0'
+      this.cssRender.domElement.style.zIndex = '1'
+      document
+      .getElementById("webgl-container")
+      .appendChild(this.cssRender.domElement);
   }
 
   initCamera() {
@@ -78,6 +87,7 @@ export default class Render {
 
   render() {
     this.composer.render();
+    this.cssRender.render(this.scene, this.camera)
     if (this.earth && !this.rotatePause) {
       this.allRotateAngle += this.frameRotateAngle;
       if (this.allRotateAngle >= Math.PI * 2) {
@@ -93,12 +103,19 @@ export default class Render {
 
   initDevHelpers() {
     this.axesHelper = new THREE.AxesHelper(200);
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.scene.add(this.axesHelper);
   }
 
   async initObject() {
     await this.initEarth();
     this.initMap();
+    const div = document.createElement('div')
+    div.innerHTML = '11111'
+    div.style.color =  '#fff'
+    div.style.fontSize =  '50px'
+    const divO = new CSS3DObject(div)
+    this.scene.add(divO)
   }
 
   async initEarth() {
