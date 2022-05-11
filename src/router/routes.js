@@ -51,6 +51,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/map3D/index.vue"),
   },
   {
+    path: "/mapbox",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/mapbox/index.vue"),
+  },
+  {
     path: "/vertexAnimation",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/vertexAnimation/index.vue"),
