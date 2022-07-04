@@ -2,11 +2,11 @@ import * as THREE from "three";
 import TWEEN from "@tweenjs/tween.js";
 import * as d3 from "d3";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
-import {CSS3DObject, CSS3DRenderer} from 'three/examples/jsm/renderers/CSS3DRenderer'
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { CopyShader } from "three/examples/jsm/shaders/CopyShader.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { TAARenderPass } from "three/examples/jsm/postprocessing/TAARenderPass.js";
 const geo = require("./geo.json");
 
 let SCENE_WIDTH = window.innerWidth;
@@ -48,7 +48,7 @@ export default class Render {
   initRenderer() {
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true,
+      // alpha: true,
     });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setClearColor(0x000000, 1);
@@ -56,19 +56,11 @@ export default class Render {
     document
       .getElementById("webgl-container")
       .appendChild(this.renderer.domElement);
-      this.cssRender = new CSS3DRenderer()
-      this.cssRender.setSize(100 , 100)
-      this.cssRender.domElement.style.position = 'absolute'
-      this.cssRender.domElement.style.top = '0'
-      this.cssRender.domElement.style.zIndex = '1'
-      document
-      .getElementById("webgl-container")
-      .appendChild(this.cssRender.domElement);
   }
 
   initCamera() {
     this.camera = new THREE.PerspectiveCamera(
-      45,
+      70,
       SCENE_WIDTH / SCENE_HEIGHT,
       0.1,
       10000
@@ -87,7 +79,6 @@ export default class Render {
 
   render() {
     this.composer.render();
-    this.cssRender.render(this.scene, this.camera)
     if (this.earth && !this.rotatePause) {
       this.allRotateAngle += this.frameRotateAngle;
       if (this.allRotateAngle >= Math.PI * 2) {
@@ -110,12 +101,6 @@ export default class Render {
   async initObject() {
     await this.initEarth();
     this.initMap();
-    const div = document.createElement('div')
-    div.innerHTML = '11111'
-    div.style.color =  '#fff'
-    div.style.fontSize =  '50px'
-    const divO = new CSS3DObject(div)
-    this.scene.add(divO)
   }
 
   async initEarth() {
@@ -399,41 +384,19 @@ export default class Render {
 
   initEffect() {
     this.composer = new EffectComposer(this.renderer);
-    const renderPass = new RenderPass(this.scene, this.camera);
-    const unrealBloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.4,
-      1,
-      0.5
-    );
-    const shaderPass = new ShaderPass(
-      {
-        uniforms: {
-          bloomTexture: { value: this.composer.renderTarget2.texture },
-          baseTexture: { value: null },
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-          }
-        `,
-        fragmentShader: `
-          uniform sampler2D baseTexture;
-          uniform sampler2D bloomTexture;
-          varying vec2 vUv;
-          void main() {
-            gl_FragColor = (texture2D(baseTexture, vUv) + vec4(1.0) * texture2D(bloomTexture, vUv));
-          }
-        `,
-      },
-      "baseTexture"
-    );
+    const taaPass = new TAARenderPass(this.scene, this.camera);
+    taaPass.sampleLevel = 1;
+    taaPass.unbiased = true;
+    taaPass.enabled = true;
+    this.composer.addPass(taaPass);
 
+    const renderPass = new RenderPass(this.scene, this.camera);
+    renderPass.enabled = false;
     this.composer.addPass(renderPass);
-    this.composer.addPass(unrealBloomPass), this.composer.addPass(shaderPass);
-  }
+
+    const copyPass = new ShaderPass(CopyShader);
+    this.composer.addPass(copyPass);
+}
 
   // 经纬度 => 三维向量
   lnglat2Vector(lng, lat) {

@@ -21,16 +21,6 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/earth2050/index.vue"),
   },
   {
-    path: "/earth2050_2",
-    component: () =>
-      import(/* webpackChunkName: "main" */ "@/examples/earth2050_2/index.vue"),
-  },
-  {
-    path: "/extrude_geometry_uv",
-    component: () =>
-      import(/* webpackChunkName: "main" */ "@/examples/extrude_geometry_uv/index.vue"),
-  },
-  {
     path: "/fresnelReflection",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/fresnelReflection/index.vue"),
@@ -54,6 +44,11 @@ export default [
     path: "/mapbox",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/mapbox/index.vue"),
+  },
+  {
+    path: "/particleSystem",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/particleSystem/index.vue"),
   },
   {
     path: "/vertexAnimation",

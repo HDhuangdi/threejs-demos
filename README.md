@@ -10,4 +10,4 @@
 6. map3D 3d 版的中国地图 https://hdhuangdi.github.io/threejs-demos/#/map3D
 7. hoverEmergeMap 鼠标经过中国区域自动浮现 geo 地图 https://hdhuangdi.github.io/threejs-demos/#/hoverEmergeMap
 8. vertexAnimation 图片顶点动画 https://hdhuangdi.github.io/threejs-demos/#/vertexAnimation
-9. extrude_geometry_uv 挤压几何体的uv坐标计算 https://hdhuangdi.github.io/threejs-demos/#/extrude_geometry_uv
+9. particleSystem 粒子系统 https://hdhuangdi.github.io/threejs-demos/#/particleSystem
