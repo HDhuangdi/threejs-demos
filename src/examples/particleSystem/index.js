@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import System from "./system/system";
+import FireFly from "./system/emitters/firefly";
+import Snow from "./system/emitters/snow";
+import Flame from "./system/emitters/flame";
+import Stars from "./system/emitters/stars";
 
 let SCENE_WIDTH = window.innerWidth;
 let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
@@ -65,6 +68,33 @@ export default class Render {
   }
 
   initObject() {
-    new System({scene: this.scene})
+    this.stars = new Stars(new THREE.Vector3(0, 0, 0));
+    this.flame = new Flame(new THREE.Vector3(100, 0, 0));
+    this.snow = new Snow(new THREE.Vector3(300, 200, 0));
+    this.firefly = new FireFly(new THREE.Vector3(0, 200, 300));
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        //	浏览器选项卡可见
+        this.stars.play();
+        this.flame.play();
+        this.snow.play();
+        this.firefly.play();
+      } else {
+        this.stars.pause();
+        this.flame.pause();
+        this.snow.pause();
+        this.firefly.pause();
+      }
+    });
+
+    this.scene.add(this.stars.mesh);
+    this.scene.add(this.flame.mesh);
+    this.scene.add(this.snow.mesh);
+    this.scene.add(this.firefly.mesh);
+    this.stars.fire();
+    this.flame.fire();
+    this.snow.fire();
+    this.firefly.fire();
   }
 }

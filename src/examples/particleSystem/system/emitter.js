@@ -72,7 +72,7 @@ export default class Emitter {
       fragmentShader: frag(),
       transparent: true,
       depthTest: false,
-      blending: this.blendMode
+      blending: this.blendMode,
     })
     this.mesh = new THREE.Points(this.geo, this.material)
   }
