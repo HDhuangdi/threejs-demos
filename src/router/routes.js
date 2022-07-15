@@ -51,6 +51,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/particleSystem/index.vue"),
   },
   {
+    path: "/shield",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/shield/index.vue"),
+  },
+  {
     path: "/vertexAnimation",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/vertexAnimation/index.vue"),
