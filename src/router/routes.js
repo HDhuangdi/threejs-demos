@@ -46,6 +46,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/mapbox/index.vue"),
   },
   {
+    path: "/offscreen",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/offscreen/index.vue"),
+  },
+  {
     path: "/particleSystem",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/particleSystem/index.vue"),
