@@ -10,8 +10,8 @@
  * 9. 切换绘制目标为颜色缓冲区
  * 10. 使用纹理对象进行绘图
  */
-import * as THREE from "three";
-import { vec4, mat4, mat2, vec3, quat } from "gl-matrix";
+import { mat4 } from "gl-matrix";
+import { initAttribBuffer, initIndexBuffer, initProgram } from "../helpers";
 
 const offscreenVs = `
  attribute vec4 a_Position;
@@ -81,7 +81,7 @@ export default class Offscreen {
   }
 
   drawOffscreen() {
-    this.offscrenProgram = this.initProgram(this.gl, offscreenVs, offscreenFs);
+    this.offscrenProgram = initProgram(this.gl, offscreenVs, offscreenFs);
     this.initOffscreenMatrix();
     this.getOffscreenLocation();
     this.bindOffscreenUniformLocation();
@@ -91,7 +91,7 @@ export default class Offscreen {
   }
 
   drawScreen() {
-    this.screenProgram = this.initProgram(this.gl, vs, fs);
+    this.screenProgram = initProgram(this.gl, vs, fs);
     this.initScreenMatrix();
     this.getScreenLocation();
     this.bindScreenUniformLocation();
@@ -506,23 +506,21 @@ export default class Offscreen {
       23, // back
     ]);
 
-    this.initBuffer(
+    initAttribBuffer(
       this.gl,
-      this.gl.ARRAY_BUFFER,
       this.gl.STATIC_DRAW,
       vertices,
       this.offscreenLocations.a_Position,
       3
     );
-    this.initBuffer(
+    initAttribBuffer(
       this.gl,
-      this.gl.ARRAY_BUFFER,
       this.gl.STATIC_DRAW,
       colors,
       this.offscreenLocations.a_Color,
       3
     );
-    this.initIndexBuffer(this.gl, indices);
+    initIndexBuffer(this.gl, indices);
     this.osIndices = indices.length;
   }
 
@@ -544,80 +542,21 @@ export default class Offscreen {
     const uv = new Float32Array([1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0]);
     const indices = new Uint8Array([0, 1, 2, 0, 2, 3]);
 
-    this.initBuffer(
+    initAttribBuffer(
       this.gl,
-      this.gl.ARRAY_BUFFER,
       this.gl.STATIC_DRAW,
       vertices,
       this.screenLocations.a_Position,
       3
     );
-    this.initBuffer(
+    initAttribBuffer(
       this.gl,
-      this.gl.ARRAY_BUFFER,
       this.gl.STATIC_DRAW,
       uv,
       this.screenLocations.a_Uv,
       2
     );
-    this.initIndexBuffer(this.gl, indices);
+    initIndexBuffer(this.gl, indices);
     this.sIndices = indices.length;
-  }
-
-  initBuffer(gl, target, mode, array, location, size) {
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(target, buffer);
-    gl.bufferData(target, array, mode);
-    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(location);
-    return buffer;
-  }
-
-  initIndexBuffer(gl, array) {
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, array, gl.STATIC_DRAW);
-  }
-
-  initProgram(gl, vshader, fshader) {
-    const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vshader);
-    const fragShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fshader);
-
-    const program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragShader);
-    gl.linkProgram(program);
-
-    const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (!linked) {
-      const error = gl.getProgramInfoLog(program);
-      console.log("Failed to link program: " + error);
-      gl.deleteProgram(program);
-      gl.deleteShader(fragShader);
-      gl.deleteShader(vertexShader);
-      return null;
-    }
-
-    gl.useProgram(program);
-
-    return program;
-  }
-
-  loadShader(gl, type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-
-    gl.compileShader(shader);
-
-    const compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-
-    if (!compiled) {
-      var error = gl.getShaderInfoLog(shader);
-      console.error("Failed to compile shader: " + error);
-      gl.deleteShader(shader);
-      return null;
-    }
-
-    return shader;
   }
 }
