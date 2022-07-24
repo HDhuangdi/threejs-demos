@@ -16,6 +16,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/curveEarth/index.vue"),
   },
   {
+    path: "/depthOfField",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/depthOfField/index.vue"),
+  },
+  {
     path: "/depthTexture",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/depthTexture/index.vue"),
