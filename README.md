@@ -16,4 +16,4 @@
 12. depthTexture 阴影 https://hdhuangdi.github.io/threejs-demos/#/depthTexture
 13. depthOfField 景深 https://hdhuangdi.github.io/threejs-demos/#/depthOfField
 14. depthOfField 景深 https://hdhuangdi.github.io/threejs-demos/#/depthOfField
-15. fatLine 景深 https://hdhuangdi.github.io/threejs-demos/#/fatLine
+15. fatLine lineWidth大于1的线条 https://hdhuangdi.github.io/threejs-demos/#/fatLine
