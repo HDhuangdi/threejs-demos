@@ -31,6 +31,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/earth2050/index.vue"),
   },
   {
+    path: "/fatLine",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/fatLine/index.vue"),
+  },
+  {
     path: "/fresnelReflection",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/fresnelReflection/index.vue"),

@@ -11,3 +11,9 @@
 7. hoverEmergeMap 鼠标经过中国区域自动浮现 geo 地图 https://hdhuangdi.github.io/threejs-demos/#/hoverEmergeMap
 8. vertexAnimation 图片顶点动画 https://hdhuangdi.github.io/threejs-demos/#/vertexAnimation
 9. particleSystem 粒子系统 https://hdhuangdi.github.io/threejs-demos/#/particleSystem
+10. shield 防护盾 https://hdhuangdi.github.io/threejs-demos/#/shield
+11. offscreen 离屏渲染 https://hdhuangdi.github.io/threejs-demos/#/offscreen
+12. depthTexture 阴影 https://hdhuangdi.github.io/threejs-demos/#/depthTexture
+13. depthOfField 景深 https://hdhuangdi.github.io/threejs-demos/#/depthOfField
+14. depthOfField 景深 https://hdhuangdi.github.io/threejs-demos/#/depthOfField
+15. fatLine 景深 https://hdhuangdi.github.io/threejs-demos/#/fatLine
