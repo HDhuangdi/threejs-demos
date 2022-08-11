@@ -206,7 +206,6 @@ export default class Render {
           return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;
         }
 
-        const int KERNEL_RADIUS = 10;
         vec4 gaussian_blur(vec2 texSize, sampler2D colorTexture, vec2 uv, vec2 direction) {
           vec2 invSize = 1.0 / texSize;
           float fSigma = 4.0;
@@ -264,7 +263,6 @@ export default class Render {
           return 0.39894 * exp(-0.5 * x * x /(sigma * sigma)) / sigma;
         }
 
-        const int KERNEL_RADIUS = 10;
         vec4 gaussian_blur(vec2 texSize, sampler2D colorTexture, vec2 uv, vec2 direction) {
           vec2 invSize = 1.0 / texSize;
           float fSigma = 4.0;
