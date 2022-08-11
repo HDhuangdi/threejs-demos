@@ -72,13 +72,13 @@ export default class Render {
     ];
     const fatLinePoints = this.extrudeLine(points, 10 / 100);
 
-    const shape = new THREE.Shape()
+    const shape = new THREE.Shape();
     for (let i = 0; i < fatLinePoints.length; i++) {
       const points = fatLinePoints[i];
       if (i === 0) {
-        shape.moveTo(points.x, points.y)
+        shape.moveTo(points.x, points.y);
       } else {
-        shape.lineTo(points.x, points.y)
+        shape.lineTo(points.x, points.y);
       }
     }
     const geo = new THREE.ExtrudeGeometry(shape, {
@@ -93,6 +93,28 @@ export default class Render {
     });
     const mesh = new THREE.Mesh(geo, material);
     this.scene.add(mesh);
+
+    const geo1 = new THREE.PlaneGeometry(50, 50);
+    const mat1 = new THREE.MeshBasicMaterial({ color: "#0B2C43" });
+    const p1 = new THREE.Mesh(geo1, mat1);
+    this.scene.add(p1);
+
+    const geo2 = new THREE.PlaneGeometry(40, 40);
+    const mat2 = new THREE.ShaderMaterial({
+      vertexShader: `
+
+      void main() {
+          gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+      }`,
+      fragmentShader: `
+
+      void main() {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 0.3);
+      }`,
+      transparent: true
+    });
+    const p2 = new THREE.Mesh(geo2, mat2);
+    this.scene.add(p2);
   }
 
   extrudeLine(points, width) {
@@ -140,16 +162,6 @@ export default class Render {
     }
 
     const res = upPoints.concat(downPoints.reverse());
-
-    // const geo = new THREE.BufferGeometry().setFromPoints(res);
-    // const mat = new THREE.LineBasicMaterial();
-    // const line = new THREE.Line(geo, mat);
-    // this.scene.add(line);
-
-    // const geo2 = new THREE.BufferGeometry().setFromPoints(points)
-    // const mat2 = new THREE.LineBasicMaterial({color: 'yellow'})
-    // const line2 = new THREE.Line(geo2, mat2)
-    // this.scene.add(line2)
     return res;
   }
 }

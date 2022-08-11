@@ -11,6 +11,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/atmosphereEarth/index.vue"),
   },
   {
+    path: "/bloom",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/bloom/index.vue"),
+  },
+  {
     path: "/curveEarth",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/curveEarth/index.vue"),
