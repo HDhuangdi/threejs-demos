@@ -5,10 +5,10 @@ import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 let SCENE_WIDTH = window.innerWidth;
 let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
 
-let BLUR_RADIUS = 3;
-let BLOOM_THRESHOLD = 0;
-let BLOOM_EXPOSURE = 1;
-let BLOOM_STRENGTH = 1.7;
+let BLUR_RADIUS = 4.8;
+let BLOOM_THRESHOLD = 0.27;
+let BLOOM_EXPOSURE = 2.6;
+let BLOOM_STRENGTH = 0.6;
 let BLUR_STEPS = 5;
 let BLUR_STEP = 2;
 
@@ -79,7 +79,7 @@ export default class Render {
       });
 
     gui
-      .add(params, "bloomStrength", 0, 10)
+      .add(params, "bloomStrength", 0, 3)
       .step(0.1)
       .onChange((value) => {
         BLOOM_STRENGTH = Number(value);
@@ -370,9 +370,9 @@ export default class Render {
         void main() {
           vec4 blur_color = texture2D(u_blur_texture, v_uv);
           vec4 origin_color = texture2D(u_scene_texture, v_uv);
-          vec4 color = blur_color + origin_color;
+          vec4 color = u_strength * blur_color + origin_color;
           vec4 result = vec4(1.0) - exp(-color * u_exposure);
-          gl_FragColor = u_strength * result;
+          gl_FragColor = result;
         }
       `,
       transparent: true,
