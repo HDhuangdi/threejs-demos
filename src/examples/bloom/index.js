@@ -1,13 +1,16 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 
 let SCENE_WIDTH = window.innerWidth;
 let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
 
-const BLUR_RADIUS = 3;
-const BLOOM_STRENGTH = 3;
-const BLUR_STEPS = 5;
-const BLUR_STEP = 2;
+let BLUR_RADIUS = 3;
+let BLOOM_THRESHOLD = 0;
+let BLOOM_EXPOSURE = 1;
+let BLOOM_STRENGTH = 1.7;
+let BLUR_STEPS = 5;
+let BLUR_STEP = 2;
 
 export default class Render {
   constructor() {
@@ -20,6 +23,8 @@ export default class Render {
     this.blurXTarget = new THREE.WebGLRenderTarget(SCENE_WIDTH, SCENE_HEIGHT);
     this.blurYTarget = new THREE.WebGLRenderTarget(SCENE_WIDTH, SCENE_HEIGHT);
 
+    this.blurMaterials = [];
+
     this.initBlurTarget();
     this.initScene();
     this.initCamera();
@@ -27,6 +32,7 @@ export default class Render {
     this.initRenderer();
     this.initObject();
     this.initDevHelpers();
+    this.initGUI();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
@@ -46,6 +52,49 @@ export default class Render {
       this[`blurXScene` + i] = new THREE.Scene();
       this[`blurYScene` + i] = new THREE.Scene();
     }
+  }
+
+  initGUI() {
+    const gui = new GUI();
+    const params = {
+      exposure: BLOOM_EXPOSURE,
+      bloomStrength: BLOOM_STRENGTH,
+      bloomThreshold: BLOOM_THRESHOLD,
+      bloomRadius: BLUR_RADIUS,
+    };
+    gui
+      .add(params, "exposure", 0, 10)
+      .step(0.1)
+      .onChange((value) => {
+        BLOOM_EXPOSURE = Number(value);
+        this.bloomPlaneMat.uniforms.u_exposure.value = BLOOM_EXPOSURE;
+      });
+
+      gui
+      .add(params, "bloomThreshold", 0, 1)
+      .step(0.001)
+      .onChange((value) => {
+        BLOOM_THRESHOLD = Number(value);
+        this.highPassMat.uniforms.u_threshold.value = BLOOM_THRESHOLD;
+      });
+
+    gui
+      .add(params, "bloomStrength", 0, 10)
+      .step(0.1)
+      .onChange((value) => {
+        BLOOM_STRENGTH = Number(value);
+        this.bloomPlaneMat.uniforms.u_strength.value = BLOOM_STRENGTH;
+      });
+
+    gui
+      .add(params, "bloomRadius", 0.0, 15)
+      .step(0.1)
+      .onChange((value) => {
+        BLUR_RADIUS = Number(value);
+        this.blurMaterials.forEach((material) => {
+          material.uniforms.u_blur_radius.value = BLUR_RADIUS;
+        });
+      });
   }
 
   initScene() {
@@ -144,9 +193,10 @@ export default class Render {
 
   initHighPassPlane() {
     const geo = new THREE.PlaneGeometry(SCENE_WIDTH, SCENE_HEIGHT);
-    const mat = new THREE.ShaderMaterial({
+    this.highPassMat = new THREE.ShaderMaterial({
       uniforms: {
         u_scene_texture: { value: this.sceneTarget.texture },
+        u_threshold: { value: BLOOM_THRESHOLD },
       },
       vertexShader: `
         varying vec2 v_uv;
@@ -157,11 +207,12 @@ export default class Render {
       `,
       fragmentShader: `
         uniform sampler2D u_scene_texture;
+        uniform float u_threshold;
         varying vec2 v_uv;
         void main() {
           vec4 color = texture2D(u_scene_texture, v_uv);
           float grayscale = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
-          if (grayscale < 0.2) {
+          if (grayscale < u_threshold) {
             discard;
           } else {
             gl_FragColor = color;
@@ -169,7 +220,7 @@ export default class Render {
         }
       `,
     });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new THREE.Mesh(geo, this.highPassMat);
     this.highPassScene.add(mesh);
   }
 
@@ -184,8 +235,8 @@ export default class Render {
                 ? this.highPassTarget.texture
                 : this[`blurYTarget` + (i - 1)].texture,
           },
-          u_texture_width: { value: Math.round(SCENE_WIDTH / 2) },// 降采样处理，提高性能
-          u_texture_height: { value: Math.round(SCENE_HEIGHT / 2) },// 降采样处理，提高性能
+          u_texture_width: { value: Math.round(SCENE_WIDTH / 2) }, // 降采样处理，提高性能
+          u_texture_height: { value: Math.round(SCENE_HEIGHT / 2) }, // 降采样处理，提高性能
           u_blur_radius: { value: BLUR_RADIUS + i * BLUR_STEP },
         },
         vertexShader: `
@@ -228,6 +279,7 @@ export default class Render {
         }
       `,
       });
+      this.blurMaterials.push(mat);
       const mesh = new THREE.Mesh(geo, mat);
       this[`blurXScene` + i].add(mesh);
     }
@@ -241,7 +293,7 @@ export default class Render {
           u_blurx_texture: {
             value: this[`blurXTarget` + i].texture,
           },
-          u_texture_width: { value: Math.round(SCENE_WIDTH / 2) },// 降采样处理，提高性能
+          u_texture_width: { value: Math.round(SCENE_WIDTH / 2) }, // 降采样处理，提高性能
           u_texture_height: { value: Math.round(SCENE_HEIGHT / 2) }, // 降采样处理，提高性能
           u_blur_radius: { value: BLUR_RADIUS + i * BLUR_STEP },
         },
@@ -284,6 +336,7 @@ export default class Render {
         }
       `,
       });
+      this.blurMaterials.push(mat);
       const mesh = new THREE.Mesh(geo, mat);
       this[`blurYScene` + i].add(mesh);
     }
@@ -291,12 +344,13 @@ export default class Render {
 
   initBloomPlane() {
     const geo = new THREE.PlaneGeometry(SCENE_WIDTH, SCENE_HEIGHT);
-    const mat = new THREE.ShaderMaterial({
+    this.bloomPlaneMat = new THREE.ShaderMaterial({
       uniforms: {
         u_blur_texture: {
           value: this[`blurYTarget` + (BLUR_STEPS - 1)].texture,
         },
         u_scene_texture: { value: this.sceneTarget.texture },
+        u_exposure: { value: BLOOM_EXPOSURE },
         u_strength: { value: BLOOM_STRENGTH },
       },
       vertexShader: `
@@ -309,19 +363,21 @@ export default class Render {
       fragmentShader: `
         uniform sampler2D u_blur_texture;
         uniform sampler2D u_scene_texture;
+        uniform float u_exposure;
         uniform float u_strength;
         varying vec2 v_uv;
 
         void main() {
           vec4 blur_color = texture2D(u_blur_texture, v_uv);
           vec4 origin_color = texture2D(u_scene_texture, v_uv);
-          vec4 color = (blur_color + origin_color) / 2.0;
-          vec4 result = vec4(1.0) - exp(-color * 1.0);
+          vec4 color = blur_color + origin_color;
+          vec4 result = vec4(1.0) - exp(-color * u_exposure);
           gl_FragColor = u_strength * result;
         }
       `,
+      transparent: true,
     });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new THREE.Mesh(geo, this.bloomPlaneMat);
     this.bloomScene.add(mesh);
   }
 
@@ -334,13 +390,13 @@ export default class Render {
     const geo2 = new THREE.BoxGeometry(50, 50, 50);
     const mat2 = new THREE.MeshPhongMaterial({ color: "#FF3640" });
     const mesh2 = new THREE.Mesh(geo2, mat2);
-    mesh2.position.set(100, 0, 0)
+    mesh2.position.set(100, 0, 0);
     this.mainScene.add(mesh2);
 
     const geo3 = new THREE.BoxGeometry(50, 50, 50);
     const mat3 = new THREE.MeshPhongMaterial({ color: "#F38E15" });
     const mesh3 = new THREE.Mesh(geo3, mat3);
-    mesh3.position.set(0, 0, 100)
+    mesh3.position.set(0, 0, 100);
     this.mainScene.add(mesh3);
   }
 }
