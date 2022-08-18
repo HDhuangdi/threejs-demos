@@ -81,6 +81,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/shield/index.vue"),
   },
   {
+    path: "/softShadow",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/softShadow/index.vue"),
+  },
+  {
     path: "/vertexAnimation",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/vertexAnimation/index.vue"),
