@@ -76,6 +76,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/particleSystem/index.vue"),
   },
   {
+    path: "/reflect",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/reflect/index.vue"),
+  },
+  {
     path: "/shield",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/shield/index.vue"),
