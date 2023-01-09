@@ -1,17 +1,20 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import Quad from "./Quad";
 
 let SCENE_WIDTH = window.innerWidth;
 let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
 
 export default class Render {
   constructor() {
+    this.upLevel = new THREE.Group();
+
     this.initScene();
     this.initCamera();
-    this.initLight();
     this.initRenderer();
     this.initObject();
     this.initDevHelpers();
+    // this.initQuad();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.clock = new THREE.Clock();
@@ -19,7 +22,11 @@ export default class Render {
   }
 
   initScene() {
-    this.scene = new THREE.Scene();
+    this.reflectionScene = new THREE.Scene();
+    this.reflectionGroup = new THREE.Group();
+    this.reflectionScene.add(this.reflectionGroup);
+
+    this.otherScene = new THREE.Scene();
   }
 
   initRenderer() {
@@ -33,6 +40,11 @@ export default class Render {
     document
       .getElementById("webgl-container")
       .appendChild(this.renderer.domElement);
+
+    this.reflectionTarget = new THREE.WebGLRenderTarget(
+      SCENE_WIDTH,
+      SCENE_HEIGHT
+    );
   }
 
   initCamera() {
@@ -44,76 +56,95 @@ export default class Render {
     );
     this.camera.position.set(0, 300, 0);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-    this.camera2 = new THREE.PerspectiveCamera(
-      45,
-      SCENE_WIDTH / SCENE_HEIGHT,
-      0.1,
-      10000
-    );
-    this.camera2.matrixAutoUpdate = false;
-    this.camera2.matrixWorldAutoUpdate = false;
-  }
-
-  initLight() {
-    this.light = new THREE.PointLight(0xffffff, 0.8); // white light
-    this.light.position.set(100, 100, 100);
-    this.scene.add(this.light);
   }
 
   render() {
-    this.camera2.matrixWorld.copy(this.camera.matrixWorld.clone());
-    // this.camera2.updateMatrixWorld();
-    this.camera2.matrixWorldInverse.elements[6] *= 2000;
-    this.camera2.matrixWorldInverse.elements[9] *= 2000;
-    this.camera2.matrixWorldInverse.elements[13] *= 2000;
-    this.camera2.matrixWorldInverse.elements[14] *= 2000;
-    console.log(this.camera2.matrixWorldInverse.elements[6]);
-    console.log(this.camera2.matrixWorldInverse.elements);
-    this.renderer.render(this.scene, this.camera2);
+    this.renderer.setRenderTarget(this.reflectionTarget);
+    this.reflectionGroup.scale.set(-1, -1, -1);
+    this.renderer.clear();
+    this.renderer.render(this.reflectionScene, this.camera);
+
+    this.renderer.setRenderTarget(null);
+    this.renderer.clear();
+    this.renderer.render(this.otherScene, this.camera);
     requestAnimationFrame(this.render.bind(this));
   }
 
   initDevHelpers() {
     this.axesHelper = new THREE.AxesHelper(200);
-    this.scene.add(this.axesHelper);
+    this.otherScene.add(this.axesHelper);
   }
 
-  initObject() {
-    this.initGeo();
-    this.initPlane();
-  }
-
-  initGeo() {
-    const geo = new THREE.BoxGeometry(20, 20, 20);
-    const mat = new THREE.ShaderMaterial({
+  initQuad() {
+    const material = new THREE.ShaderMaterial({
       uniforms: {
-        vm: { value: this.camera2.matrixWorldInverse },
+        u_reflection_texture: { value: this.renderTarget2.texture },
+        u_texture: { value: this.renderTarget.texture },
       },
       vertexShader: `
-      uniform mat4 vm;
+        varying vec2 v_uv;
+
         void main() {
-          gl_Position = projectionMatrix * vm * modelMatrix * vec4( position, 1.0 );
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          v_uv = uv;
         }
       `,
       fragmentShader: `
+        uniform sampler2D u_texture;
+        uniform sampler2D u_reflection_texture;
+        varying vec2 v_uv;
+
         void main() {
-          gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+          gl_FragColor = texture2D(u_texture, v_uv);
         }
       `,
+      transparent: true,
     });
+    this.quad = new Quad(SCENE_WIDTH, SCENE_HEIGHT, material);
+  }
+
+  initObject() {
+    this.initReflectionObjects();
+    this.initOtherObjects();
+  }
+
+  initReflectionObjects() {
+    const geo = new THREE.BoxGeometry(20, 20, 20);
+    const mat = new THREE.MeshBasicMaterial({color: 'blue'});
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(0, 100, 0);
-    this.scene.add(mesh);
+    this.otherScene.add(mesh)
+    this.reflectionGroup.add(mesh.clone());
   }
-  initPlane() {
+
+  initOtherObjects() {
     const geo = new THREE.PlaneGeometry(200, 200);
-    const mat = new THREE.MeshBasicMaterial({
-      side: THREE.DoubleSide,
-      color: "grey",
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        u_reflection_texture: { value: this.reflectionTarget.texture },
+      },
+      vertexShader: `
+        varying vec2 v_uv;
+
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          v_uv = uv;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D u_reflection_texture;
+        varying vec2 v_uv;
+
+        void main() {
+          vec2 uv = vec2(v_uv.x, abs(v_uv.y - 1.0));
+          gl_FragColor = texture2D(u_reflection_texture, uv);
+          // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+      `,
+      side: THREE.BackSide,
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.rotateX(Math.PI / 2);
-    this.scene.add(mesh);
+    this.otherScene.add(mesh);
   }
 }

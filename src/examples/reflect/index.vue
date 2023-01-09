@@ -4,6 +4,8 @@
 
 <script>
 import Render from "./index";
+
+
 export default {
   components: {},
   mounted() {
