@@ -5,7 +5,6 @@
 <script>
 import Render from "./index";
 
-
 export default {
   components: {},
   mounted() {
@@ -14,4 +13,8 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+#aa {
+  color: rgb(31, 45, 51);
+}
+</style>

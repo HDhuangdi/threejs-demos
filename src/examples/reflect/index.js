@@ -8,13 +8,14 @@ let SCENE_HEIGHT = Math.max(window.innerHeight - 130, 200);
 export default class Render {
   constructor() {
     this.upLevel = new THREE.Group();
+    this.textureMatrix = new THREE.Matrix4();
 
     this.initScene();
     this.initCamera();
     this.initRenderer();
     this.initObject();
+    this.initMirrorCamera();
     this.initDevHelpers();
-    // this.initQuad();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.clock = new THREE.Clock();
@@ -22,11 +23,8 @@ export default class Render {
   }
 
   initScene() {
-    this.reflectionScene = new THREE.Scene();
-    this.reflectionGroup = new THREE.Group();
-    this.reflectionScene.add(this.reflectionGroup);
-
-    this.otherScene = new THREE.Scene();
+    this.mirrorScene = new THREE.Scene();
+    this.scene = new THREE.Scene();
   }
 
   initRenderer() {
@@ -41,10 +39,7 @@ export default class Render {
       .getElementById("webgl-container")
       .appendChild(this.renderer.domElement);
 
-    this.reflectionTarget = new THREE.WebGLRenderTarget(
-      SCENE_WIDTH,
-      SCENE_HEIGHT
-    );
+    this.mirrorTarget = new THREE.WebGLRenderTarget(SCENE_WIDTH, SCENE_HEIGHT);
   }
 
   initCamera() {
@@ -58,93 +53,136 @@ export default class Render {
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   }
 
+  initMirrorCamera() {
+    this.mirrorCamera = new THREE.PerspectiveCamera();
+
+    this.updateMirrorCamera();
+  }
+
+  updateMirrorCamera() {
+    const mirrorWorldPosition = new THREE.Vector3();
+    const cameraWorldPosition = new THREE.Vector3();
+    const rotationMatrix = new THREE.Matrix4(); // 镜像平面、镜像相机的旋转矩阵
+    const lookAtPosition = new THREE.Vector3(0, 0, -1);
+    const normal = new THREE.Vector3();
+    const view = new THREE.Vector3(); // 镜像相机的世界位置
+    const target = new THREE.Vector3(); // 镜像相机的视点位置
+
+    // 计算镜像相机的世界位置
+    mirrorWorldPosition.setFromMatrixPosition(this.mirror.matrixWorld); // 得到镜面的世界位置
+    cameraWorldPosition.setFromMatrixPosition(this.camera.matrixWorld); // 得到相机的世界位置
+    rotationMatrix.extractRotation(this.mirror.matrixWorld); // 获取镜面的旋转矩阵
+
+    // 定义一个默认的法向量，乘以上一步得到的镜面的旋转向量得到：镜面现在的法向量
+    normal.set(0, 0, 1);
+    normal.applyMatrix4(rotationMatrix);
+    // 计算 从相机位置到镜面位置 的向量
+    view.subVectors(mirrorWorldPosition, cameraWorldPosition);
+    // 得到反射向量的反向量
+    view.reflect(normal).negate();
+    // 反向量加上该镜面的世界位置，得到镜面相机的世界位置
+    view.add(mirrorWorldPosition);
+
+    // 计算镜像相机的视点位置，原理同上
+    rotationMatrix.extractRotation(this.camera.matrixWorld);
+    lookAtPosition.set(0, 0, -1);
+    lookAtPosition.applyMatrix4(rotationMatrix);
+    lookAtPosition.add(cameraWorldPosition);
+
+    target.subVectors(mirrorWorldPosition, lookAtPosition);
+    target.reflect(normal).negate();
+    target.add(mirrorWorldPosition);
+
+    // 设置镜面相机参数
+    this.mirrorCamera.position.copy(view);
+    this.mirrorCamera.up.set(0, 1, 0);
+    this.mirrorCamera.up.applyMatrix4(rotationMatrix);
+    this.mirrorCamera.up.reflect(normal);
+    this.mirrorCamera.lookAt(target);
+
+    this.mirrorCamera.far = this.camera.far;
+
+    this.mirrorCamera.updateMatrixWorld();
+    this.mirrorCamera.projectionMatrix.copy(this.camera.projectionMatrix);
+    this.updateTextureMatrix();
+  }
+
+  updateTextureMatrix() {
+    // 这是初始化的矩阵主要是为了把屏幕坐标和[-1, 1]映射到[0, 1]的纹理坐标
+    // prettier-ignore
+    this.textureMatrix.set(
+      0.5, 0.0, 0.0, 0.5,
+      0.0, 0.5, 0.0, 0.5,
+      0.0, 0.0, 0.5, 0.5,
+      0.0, 0.0, 0.0, 1.0
+    );
+
+    this.textureMatrix.multiply(this.mirrorCamera.projectionMatrix); // 投影矩阵
+    this.textureMatrix.multiply(this.mirrorCamera.matrixWorldInverse); // 视图矩阵
+    this.textureMatrix.multiply(this.mirror.matrixWorld); // 模型矩阵
+  }
+
   render() {
-    this.renderer.setRenderTarget(this.reflectionTarget);
-    this.reflectionGroup.scale.set(-1, -1, -1);
-    this.renderer.clear();
-    this.renderer.render(this.reflectionScene, this.camera);
+    this.updateMirrorCamera();
+    this.renderer.setRenderTarget(this.mirrorTarget);
+    this.renderer.render(this.mirrorScene, this.mirrorCamera);
 
     this.renderer.setRenderTarget(null);
-    this.renderer.clear();
-    this.renderer.render(this.otherScene, this.camera);
+    this.renderer.render(this.scene, this.camera);
+
     requestAnimationFrame(this.render.bind(this));
   }
 
   initDevHelpers() {
     this.axesHelper = new THREE.AxesHelper(200);
-    this.otherScene.add(this.axesHelper);
-  }
-
-  initQuad() {
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        u_reflection_texture: { value: this.renderTarget2.texture },
-        u_texture: { value: this.renderTarget.texture },
-      },
-      vertexShader: `
-        varying vec2 v_uv;
-
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-          v_uv = uv;
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D u_texture;
-        uniform sampler2D u_reflection_texture;
-        varying vec2 v_uv;
-
-        void main() {
-          gl_FragColor = texture2D(u_texture, v_uv);
-        }
-      `,
-      transparent: true,
-    });
-    this.quad = new Quad(SCENE_WIDTH, SCENE_HEIGHT, material);
+    this.scene.add(this.axesHelper);
   }
 
   initObject() {
-    this.initReflectionObjects();
-    this.initOtherObjects();
+    this.initMirrorObjects();
+    this.initMirror();
   }
 
-  initReflectionObjects() {
+  initMirrorObjects() {
     const geo = new THREE.BoxGeometry(20, 20, 20);
-    const mat = new THREE.MeshBasicMaterial({color: 'blue'});
+    const mat = new THREE.MeshBasicMaterial({ color: "blue" });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(0, 100, 0);
-    this.otherScene.add(mesh)
-    this.reflectionGroup.add(mesh.clone());
+    this.scene.add(mesh);
+    this.mirrorScene.add(mesh.clone());
   }
 
-  initOtherObjects() {
+  initMirror() {
     const geo = new THREE.PlaneGeometry(200, 200);
     const mat = new THREE.ShaderMaterial({
       uniforms: {
-        u_reflection_texture: { value: this.reflectionTarget.texture },
+        u_reflection_texture: { value: this.mirrorTarget.texture },
+        u_texture_matrix: { value: this.textureMatrix },
+        u_color: { value: new THREE.Color("rgb(31, 45, 51)") },
       },
       vertexShader: `
-        varying vec2 v_uv;
+        varying vec4 v_uv;
+        uniform mat4 u_texture_matrix;
 
         void main() {
           gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-          v_uv = uv;
+          v_uv = u_texture_matrix * vec4( position, 1.0 );
         }
       `,
       fragmentShader: `
         uniform sampler2D u_reflection_texture;
-        varying vec2 v_uv;
+        uniform vec3 u_color;
+        varying vec4 v_uv;
 
         void main() {
-          vec2 uv = vec2(v_uv.x, abs(v_uv.y - 1.0));
-          gl_FragColor = texture2D(u_reflection_texture, uv);
-          // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+          vec4 mirror_color = texture2D(u_reflection_texture, v_uv.xy / v_uv.w);
+          gl_FragColor = vec4(u_color, 1.0) + mirror_color; 
         }
       `,
       side: THREE.BackSide,
     });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotateX(Math.PI / 2);
-    this.otherScene.add(mesh);
+    this.mirror = new THREE.Mesh(geo, mat);
+    this.mirror.rotateX(Math.PI / 2);
+    this.scene.add(this.mirror);
   }
 }
