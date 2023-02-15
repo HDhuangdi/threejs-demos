@@ -144,11 +144,11 @@ export default class Render {
   }
 
   initMirrorObjects() {
-    const geo = new THREE.BoxGeometry(20, 20, 20);
+    const geo = new THREE.BoxGeometry(20, 100, 20);
     const mat = new THREE.MeshBasicMaterial({ color: "blue" });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(0, 100, 0);
-    this.scene.add(mesh);
+    mesh.position.set(0, 50, 0);
+    // this.scene.add(mesh);
     this.mirrorScene.add(mesh.clone());
   }
 

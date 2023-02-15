@@ -152,7 +152,7 @@ export default class Render {
         nightTexture: {
           type: "sampler2D",
           value: this.textureLoader.load(
-            require("@/assets/images/earth-night.jpg")
+            require("@/assets/images/night_lights_modified.png")
           ),
         },
         lightPos: {

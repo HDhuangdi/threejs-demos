@@ -6,6 +6,11 @@ export default [
       import(/* webpackChunkName: "main" */ "@/examples/earth2050/index.vue"),
   },
   {
+    path: "/aaa",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/aaa/index.vue"),
+  },
+  {
     path: "/atmosphereEarth",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/atmosphereEarth/index.vue"),
@@ -89,6 +94,11 @@ export default [
     path: "/softShadow",
     component: () =>
       import(/* webpackChunkName: "main" */ "@/examples/softShadow/index.vue"),
+  },
+  {
+    path: "/solar",
+    component: () =>
+      import(/* webpackChunkName: "main" */ "@/examples/solar/index.vue"),
   },
   {
     path: "/vertexAnimation",

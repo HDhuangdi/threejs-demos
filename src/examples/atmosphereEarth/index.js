@@ -53,13 +53,14 @@ export default class Render {
   }
 
   initLight() {
-    this.light = new THREE.PointLight(0xffffff, 0.8); // white light
+    this.light = new THREE.PointLight(0xffffff, 0.4); // white light
     this.light.position.set(100, 100, 100);
     this.scene.add(this.light);
   }
 
   render() {
     this.composer.render();
+    this.earth.rotateZ(Math.PI / 2000)
     const deltaTime = this.clock.getDelta();
     this.atmosphereMaterial.uniforms.time.value += deltaTime;
     requestAnimationFrame(this.render.bind(this));
@@ -73,6 +74,8 @@ export default class Render {
   }
 
   initObject() {
+    this.earth = new THREE.Group()
+    this.scene.add(this.earth);
     const textureLoader = new THREE.TextureLoader();
 
     const earthGeo = new THREE.SphereGeometry(50, 50, 50);
@@ -85,8 +88,8 @@ export default class Render {
         require("@/assets/images/earth-spec.png")
       ),
     });
-    const earth = new THREE.Mesh(earthGeo, earthMaterial);
-    this.scene.add(earth);
+    const ball = new THREE.Mesh(earthGeo, earthMaterial);
+    this.earth.add(ball)
 
     const atmosphereGeo = new THREE.SphereGeometry(50.1, 50, 50);
     const atmosphereTexture = textureLoader.load(
@@ -121,7 +124,7 @@ export default class Render {
       transparent: true,
     });
     const atmosphere = new THREE.Mesh(atmosphereGeo, this.atmosphereMaterial);
-    this.scene.add(atmosphere);
+    this.earth.add(atmosphere)
 
     const glowGeo = new THREE.SphereGeometry(52, 50, 50);
     const glowMaterial = new ShaderMaterial({
@@ -184,7 +187,7 @@ export default class Render {
     1, 1, 1;
     0.376, 0.478, 1;
     const glow = new THREE.Mesh(glowGeo, glowMaterial);
-    this.scene.add(glow);
+    this.scene.add(glow)
   }
 
   initEffect() {
@@ -193,7 +196,7 @@ export default class Render {
     const unrealBloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       0.8,
-      1,
+      0.2,
       0
     );
     const shaderPass = new ShaderPass(
